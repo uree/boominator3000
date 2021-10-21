@@ -3,13 +3,8 @@ package main
 import (
     "net/http"
     "html/template"
-    //"fmt"
+    "fmt"
 )
-
-// type Todo struct {
-//     Title string
-//     Done  bool
-// }
 
 
 type ResponseData struct {
@@ -21,10 +16,17 @@ type ResponseData struct {
 func main() {
     //http.Handle("/", http.FileServer(http.Dir("./templates")))
     tmpl := template.Must(template.ParseFiles("./templates/index.html"))
-    http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+    http.HandleFunc("/tolpe", func(w http.ResponseWriter, r *http.Request) {
+
+        query := r.URL.Query()
+        start := query.Get("start")
+        end := query.Get("end")
+
+        fmt.Printf("params: ", start, end)
+
         response := ResponseData{
-            Start: "yesterday",
-            End: "now",
+            Start: start,
+            End: end,
             Tolpe: []string {
                 "https://bandcamp.com/EmbeddedPlayer/album=3777583599/size=large/bgcol=ffffff/linkcol=0687f5/tracklist=true/artwork=small/transparent=true/",
                 "https://bandcamp.com/EmbeddedPlayer/album=3777583599/size=large/bgcol=ffffff/linkcol=0687f5/tracklist=true/artwork=small/transparent=true/",
