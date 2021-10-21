@@ -1,4 +1,4 @@
-module boominator3000
+module boom-fetch
 
 go 1.17
 
