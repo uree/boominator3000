@@ -4,6 +4,7 @@ import (
 	"strings"
     "fmt"
     "net/http"
+	"html/template"
     "encoding/xml"
 	"io/ioutil"
 	"time"
@@ -25,25 +26,71 @@ type SitemapURL struct {
     ChangeFrequency  string `xml:"changefreq"`
 }
 
+type ResponseData struct {
+    Start string
+    End   string
+    Tolpe     []string
+}
 
-func inTimeSpan(start, end, check time.Time) bool {
+func between(start, end, check time.Time) bool {
     return check.After(start) && check.Before(end)
 }
 
 const
 (
     RFC3339     = "2006-01-02T15:04Z"
+	BASICDATE	= "2006-01-02"
 )
 
 
 func main() {
+	//http.Handle("/", http.FileServer(http.Dir("./templates")))
+	tmpl := template.Must(template.ParseFiles("./templates/index.html"))
+	http.HandleFunc("/tolpe", func(w http.ResponseWriter, r *http.Request) {
+
+		query := r.URL.Query()
+		from := query.Get("from")
+		to := query.Get("to")
+
+		// testdata := []string {
+		// 	"https://bandcamp.com/EmbeddedPlayer/album=3777583599/size=large/bgcol=ffffff/linkcol=0687f5/tracklist=true/artwork=small/transparent=true/",
+		// 	"https://bandcamp.com/EmbeddedPlayer/album=3777583599/size=large/bgcol=ffffff/linkcol=0687f5/tracklist=true/artwork=small/transparent=true/",
+		// 	"https://bandcamp.com/EmbeddedPlayer/album=3777583599/size=large/bgcol=ffffff/linkcol=0687f5/tracklist=true/artwork=small/transparent=true/",
+		// }
+
+		// an option in the future
+		//https://stackoverflow.com/questions/37118281/dynamically-refresh-a-part-of-the-template-when-a-variable-is-updated-golang
+		from_format := from + "T00:00Z"
+		fmt.Printf("params: ", from_format, to)
+
+		bclinks := fetchXML(from_format)
+		fmt.Printf("bclinks: ", bclinks)
+
+
+
+		response := ResponseData{
+			Start: from,
+			End: to,
+			Tolpe: bclinks,
+		}
+		tmpl.Execute(w, response)
+	})
+	http.ListenAndServe(":8090", nil)
+
+}
+
+func fetchXML(from string)([]string) {
 	start := time.Now()
 
-    resp, err := http.Get("http://radiostudent.si/sitemap.xml?page=1")
-    if err != nil {
-        panic(err)
-    }
-    defer resp.Body.Close()
+	var tolpe[] string
+
+	resp, err := http.Get("http://radiostudent.si/sitemap.xml?page=1")
+	if err != nil {
+		panic(err)
+	}
+	defer resp.Body.Close()
+
+
 
 	fmt.Println("Response status:", resp.Status)
 
@@ -52,90 +99,72 @@ func main() {
 		fmt.Printf("error: %v", err)
 	}
 	var urlset URLSet
-    xml.Unmarshal(byteValue, &urlset)
+	xml.Unmarshal(byteValue, &urlset)
+
+	parsed := time.Since(start)
+	fmt.Printf("Parsed [%s]", parsed)
+	fmt.Printf("\n")
 
 	c := make(chan string)
-	//cFin := make(chan bool)
 
-	timeFilter, _ := time.Parse(RFC3339, "2021-10-01T15:00Z")
+	timeFilter, _ := time.Parse(RFC3339, from)
 	fmt.Println("timeFilter: ", timeFilter)
 
-	// var wg sync.WaitGroup
-	// wg.Add(1)
-	//
-	// go func() {
-	// 	fetchBC(urlset, timeFilter, c)
-	// 	wg.Done()
-	//
-	// }()
-	//
-	// //blocks until counter is 0
-	// wh.Wait()
+	go fetchBC(urlset, timeFilter, c)
 
-	// for elem := range c {
-    //     fmt.Println("BANDCAMP: ", elem, '\n')
-    // }
+	for bc := range c {
+		fmt.Println("BANDCAMP: ", bc)
+		tolpe = append(tolpe, bc)
+		// fmt.Println("\n")
+		elapsed := time.Since(start)
+		fmt.Printf("Took [%s]", elapsed)
+		fmt.Println("[ALL INNER]", tolpe)
+	}
+	//9 urls take 4s
+	fmt.Println("[ALL]", tolpe)
 
-	// bandcamp := <- c
-	// fmt.Println("\nbandcamp: ", bandcamp)
+	return tolpe
 
-	//
-	// bandcamps[bandcamp] = true
-	//
-	// // bandcamps = append(bandcamps, bandcamp)
-	//fmt.Println("bandcamps: ", bandcamps)
+}
+
+func fetchBC(urlset URLSet, timeFilter time.Time, c chan string) {
 
 	for i := 0; i < len(urlset.URLSet); i++ {
 		loc := strings.ToLower(urlset.URLSet[i].Location)
 		mod, _ := time.Parse(RFC3339, urlset.URLSet[i].LastModifiedDate)
-		go fetchBC(i, loc, mod, timeFilter, c)
 
-	}
+		if strings.Contains(loc, "/glasba/tolpa-bumov/"){
+			if mod.After(timeFilter) {
+				fmt.Println("Location: " + loc)
+				//fmt.Println("Modified: " + mod)
+				resp, err := http.Get(loc)
 
-	for bc := range c {
-		fmt.Println("BANDCAMP: ", bc)
-		fmt.Println("\n")
-		elapsed := time.Since(start)
-		fmt.Printf("Took [%s]", elapsed)
-	}
-	//9 urls take 4s
+				if err != nil {
+				  c <- fmt.Sprint(err) // send to channel ch
+				  return
+				}
 
+				defer resp.Body.Close()
 
+				fmt.Println("Response status:", resp.Status)
 
+				doc, err := goquery.NewDocumentFromReader(resp.Body)
 
+				if err != nil {
+					fmt.Printf("error: %v", err)
+				}
 
-}
+				//ignore yt iframes yo!
 
-func fetchBC(i int, loc string, mod time.Time, timeFilter time.Time, c chan string) {
-
-	if strings.Contains(loc, "/glasba/tolpa-bumov/"){
-		if mod.After(timeFilter) {
-			fmt.Println("Location: " + loc)
-			//fmt.Println("Modified: " + mod)
-			resp, err := http.Get(loc)
-
-			if err != nil {
-			  c <- fmt.Sprint(err) // send to channel ch
-			  return
+				doc.Find("iframe").Each(func(i int, s *goquery.Selection) {
+					sauce, _ := s.Attr("src")
+					fmt.Printf("iframe:\n %v", sauce)
+					if strings.Contains(sauce, "//bandcamp") {
+						c <- sauce
+					}
+				})
 			}
-
-			defer resp.Body.Close()
-
-			fmt.Println("Response status:", resp.Status)
-
-			doc, err := goquery.NewDocumentFromReader(resp.Body)
-
-			if err != nil {
-				fmt.Printf("error: %v", err)
-			}
-
-			//ignore yt iframes yo!
-
-			doc.Find("iframe").Each(func(i int, s *goquery.Selection) {
-				sauce, _ := s.Attr("src")
-				//fmt.Printf("iframe:\n %v", sauce)
-				c <- sauce
-			})
 		}
 	}
+	close(c)
 }
