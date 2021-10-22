@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+    <head>
+        <meta charset="utf-8">
+        <title>Boominator 3000</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <link rel="stylesheet" href="static/main.css">
+        <script
+			  src="https://code.jquery.com/jquery-3.6.0.slim.min.js"
+			  integrity="sha256-u7e5khyithlIdTpu22PHhENmPcRdFiHRjhAuHcs05RI="
+			  crossorigin="anonymous"></script>
+
+    </head>
+    <body>
+        <div class="content">
+            <div class="banner">
+                <h1>pLEASURE OF UNTERGRUND LISTENING</h1>
+            </div>
+
+
+            <div class="tolpe">
+                <div class="info">
+                    <p>from {{.Start}} to {{.End}}</p>
+                </div>
+                <div class="players">
+
+                    {{range .Tolpe}}
+                        <iframe seamless="" src="{{.}}" style="border: 0; min-width: 36vw; min-height: 350px; display: block;"></iframe>
+                    {{end}}
+
+                </div>
+            </div>
+
+        </div>
+
+
+        <script type="text/javascript">
+            $(document).ready(function() {
+                console.log("init listener");
+                var player = $('iframe')[0];
+                var playerOrigin = '*';
+                var status = $('.status');
+
+                // Listen for messages from the player
+                if (window.addEventListener) {
+                    window.addEventListener('message', onMessageReceived, false);
+                }
+                else {
+                    window.attachEvent('onmessage', onMessageReceived, false);
+                }
+
+                // Handle messages received from the player
+                function onMessageReceived(event) {
+                    // Handle messages from the vimeo player only
+
+                    var data = event.data;
+                    console.log("message received");
+                    console.log(data);
+                }
+            });
+        </script>
+
+    </body>
+</html>
