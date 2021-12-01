@@ -1,4 +1,4 @@
-![](static/boominator.jpg)
+![](static/boominator-pleasure.png)
 
 Fetches Bandcamp albums featured in Tolpa Bumov on Radio Študent and arranges them in a quasi playlist.
 
