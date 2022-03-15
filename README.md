@@ -5,7 +5,7 @@ Fetches Bandcamp albums featured in Tolpa Bumov on Radio Študent and arranges t
 
 ## Run
 
-Check releases for boom-fetch (linux) or boom-fetch.exe (wins). Or compile from source for your platform. Run and go to localhost:8090/tolpe?from=2021-10-20.
+Download the repository and run for boom-fetch (linux) or boom-fetch.exe (wins). Go to localhost:8090/tolpe?from=2021-10-20.
 
 The from parameter is mandatory. The required date format is YYYY-MM-DD.
 
