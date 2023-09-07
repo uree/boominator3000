@@ -20,17 +20,16 @@
 
             <div class="tolpe">
                 <div class="info">
-                    <p>from {{.Start}} to {{.End}}</p>
+                    <p>from {{.Start}} to {{.End}} [ {{len .Tolpe}} tolp]</p>
                 </div>
                 <div class="players">
 
                     {{range .Tolpe}}
-                        <iframe seamless="" src="{{.}}" style="border: 0; min-width: 36vw; min-height: 350px; display: block;"></iframe>
+                        <iframe seamless="" src="{{.Location}}" style="border: 0; min-width: 36vw; min-height: 350px; display: block;"></iframe>
                     {{end}}
 
                 </div>
             </div>
-
         </div>
 
 

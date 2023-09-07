@@ -11,9 +11,10 @@ import (
 	"os"
 	"strconv"
 	"io"
-	//"sync"
+	"database/sql"
 
 	"github.com/PuerkitoBio/goquery"
+	_ "github.com/mattn/go-sqlite3"
 )
 
 // NOTES
@@ -71,7 +72,12 @@ type SitemapSitemap struct {
 type ResponseData struct {
     Start string
     End   string
-    Tolpe     []string
+    Tolpe     []ChanResult
+}
+
+type ChanResult struct {
+    Location	string
+    LastModifiedDate	time.Time
 }
 
 // HELPER FUNCTIONS
@@ -136,10 +142,111 @@ const
 )
 
 
-// MAIN
+// DATABASE INTERACTION
+const dbname = "boominator.db"
 
+func doesDBexist() bool {
+	if _, err := os.Stat("./db/boominator.db"); err == nil {
+	 fmt.Printf("File exists.\n")
+	 return true
+	} else {
+		fmt.Printf("File does not exist.\n")
+		return false
+	}
+}
+
+func createDB(dbname string) (int, error) {
+	os.Create("./db/"+dbname)
+	db, err := sql.Open("sqlite3", "./db/"+dbname)
+
+	const createTable string = `
+  CREATE TABLE IF NOT EXISTS tolpe (
+  id string NOT NULL PRIMARY KEY,
+  lastmod DATETIME NOT NULL
+  );`
+
+	if err != nil {
+	 return 0, err
+	}
+	if _, err := db.Exec(createTable); err != nil {
+	  return 0, err
+	}
+	db.Close()
+	fmt.Printf("Database created.")
+	return 1, nil
+}
+
+func insertRecords(tolpe []ChanResult) bool {
+	fmt.Println("inserting records")
+	// open db
+	db, err := sql.Open("sqlite3", "./db/boominator.db")
+	if err != nil {
+	 fmt.Println(err)
+	 os.Exit(0)
+	}
+
+	prepStr := "REPLACE INTO tolpe (id, lastmod) values"
+	vals := []interface{}{}
+
+	for _, row := range tolpe {
+    prepStr += "(?, ?),"
+		fmt.Println(row)
+
+    vals = append(vals, row.Location, row.LastModifiedDate)
+	}
+	fmt.Println(prepStr)
+	//trim the last ,
+	prepStr = prepStr[0:len(prepStr)-1]
+	//prepare the statement
+	stmt, _ := db.Prepare(prepStr)
+	fmt.Println(stmt)
+	_, err = stmt.Exec(vals...)
+	db.Close()
+	if err != nil {
+		fmt.Println(err)
+		return false
+	}
+
+
+	return true
+}
+
+func getRecords(fromdate time.Time, todate time.Time) ([]ChanResult, error) {
+
+	db, err := sql.Open("sqlite3", "./db/boominator.db")
+	if err != nil {
+	 fmt.Println(err)
+	 return nil, err
+	}
+
+	var results []ChanResult
+	// lastmod  >= '2023-08-25' and lastmod <= '2023-09-07' ORDER BY lastmod DESC
+	rows, err := db.Query("SELECT * FROM tolpe WHERE lastmod >= ? and lastmod <= ? ORDER BY lastmod DESC", fromdate, todate)
+
+	if err != nil {
+	 fmt.Println(err)
+	 return nil, err
+	}
+
+	defer rows.Close()
+
+	for rows.Next() {
+		var res ChanResult
+		if err := rows.Scan(&res.Location, &res.LastModifiedDate); err != nil {
+        return results, err
+    }
+		results = append(results, res)
+	}
+	fmt.Println(results)
+	return results, nil
+}
+
+// MAIN
 func main() {
-	//http.Handle("/", http.FileServer(http.Dir("./templates")))
+	if doesDBexist() ==false {
+		createDB(dbname)
+	}
+
 	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
 
 	tmpl := template.Must(template.ParseFiles("./templates/index.html"))
@@ -163,21 +270,21 @@ func main() {
 			fmt.Println("<UPDATE OFF>")
 		}
 
-		// testdata := []string {
-		// 	"https://bandcamp.com/EmbeddedPlayer/album=3777583599/size=large/bgcol=ffffff/linkcol=0687f5/tracklist=true/artwork=small/transparent=true/",
-		// 	"https://bandcamp.com/EmbeddedPlayer/album=3777583599/size=large/bgcol=ffffff/linkcol=0687f5/tracklist=true/artwork=small/transparent=true/",
-		// 	"https://bandcamp.com/EmbeddedPlayer/album=3777583599/size=large/bgcol=ffffff/linkcol=0687f5/tracklist=true/artwork=small/transparent=true/",
-		// }
+		var bclinks []ChanResult
 
-		// an option in the future
-		//https://stackoverflow.com/questions/37118281/dynamically-refresh-a-part-of-the-template-when-a-variable-is-updated-golang
-		from_format := from + "T00:00Z"
-		to_format := to + "T00:00Z"
-		fmt.Printf("[PARAMS] ", from_format, to_format)
+		if update {
+			from_format := from + "T00:00Z"
+			to_format := to + "T00:00Z"
+			fmt.Printf("[PARAMS] ", from_format, to_format)
 
-		// one month takes 13s
-		bclinks := fetchXML(from_format, to_format, update)
-		fmt.Printf("[COUNT] ", len(bclinks))
+			bclinks = fetchXML(from_format, to_format, update)
+			fmt.Printf("[COUNT] ", len(bclinks))
+			insertRecords(bclinks)
+		} else {
+			from_date,_ := time.Parse(BASICDATE, from)
+			to_date,_ := time.Parse(BASICDATE, to)
+			bclinks, _ = getRecords(from_date, to_date)
+		}
 
 		response := ResponseData{
 			Start: from,
@@ -192,10 +299,11 @@ func main() {
 
 // CORE FUNCTIONS
 
-func fetchXML(from string, to string, update bool)([]string) {
+func fetchXML(from string, to string, update bool)([]ChanResult) {
 	start := time.Now()
 
-	var tolpe[] string
+	// var tolpe[] string
+	var tolpe []ChanResult
 
 	sitemaps := []string {"http://radiostudent.si/sitemap.xml?page=1","http://radiostudent.si/sitemap.xml?page=2"}
 
@@ -216,8 +324,8 @@ func fetchXML(from string, to string, update bool)([]string) {
 	fmt.Printf("\n")
 
 
-	c := make(chan string)
-	c2 := make(chan string)
+	c := make(chan ChanResult)
+	c2 := make(chan ChanResult)
 
 	from_date, _ := time.Parse(RFC3339, from)
 	to_date := start
@@ -260,7 +368,9 @@ func fetchSitemaps(sitemaps []string, c chan string) {
 	close(c)
 }
 
-func fetchBC(urlset URLSet, from_date time.Time, to_date time.Time, c chan string) {
+func fetchBC(urlset URLSet, from_date time.Time, to_date time.Time, c chan ChanResult) {
+
+	// fetch from db
 
 	for i := 0; i < len(urlset.URLSet); i++ {
 		loc := strings.ToLower(urlset.URLSet[i].Location)
@@ -269,11 +379,11 @@ func fetchBC(urlset URLSet, from_date time.Time, to_date time.Time, c chan strin
 		if strings.Contains(loc, "/glasba/tolpa-bumov/"){
 			if between(from_date, to_date, mod) {
 				//fmt.Println("Location: " + loc)
-				//fmt.Println("Modified: " + mod)
+				//fmt.Println("Modified: " + mod.String())
 				resp, err := http.Get(loc)
 
 				if err != nil {
-				  c <- fmt.Sprint(err) // send to channel ch
+				  //c <- fmt.Sprint(err) // send to channel ch
 				  return
 				}
 
@@ -289,12 +399,17 @@ func fetchBC(urlset URLSet, from_date time.Time, to_date time.Time, c chan strin
 
 				//ignore yt iframes yo!
 
+				// i have to return mod as well if i want time ranking
+
 				doc.Find("iframe").Each(func(i int, s *goquery.Selection) {
 					sauce, _ := s.Attr("src")
 					//fmt.Printf("iframe:\n %v", sauce)
 					if strings.Contains(sauce, "//bandcamp") {
 						sauce = strings.Replace(sauce, "/tracklist=false", "tracklist=true", -1)
-						c <- sauce
+						res := new(ChanResult)
+						res.Location = sauce
+						res.LastModifiedDate = mod
+						c <- *res
 					}
 				})
 			}
