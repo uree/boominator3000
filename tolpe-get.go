@@ -248,7 +248,7 @@ func main() {
 			ct := time.Now()
 			to = ct.Format(BASICDATE)
 		}
-
+		// TO DO: redirect so the url is synced
 		if from == "" {
 			tn := time.Now()
 			ftemp := tn.AddDate(0,0,-7) // 7 days ago
