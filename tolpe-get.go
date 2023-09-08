@@ -246,7 +246,13 @@ func main() {
 
 		if to == "" {
 			ct := time.Now()
-			to = ct.Format("2006-01-02")
+			to = ct.Format(BASICDATE)
+		}
+
+		if from == "" {
+			tn := time.Now()
+			ftemp := tn.AddDate(0,0,-7) // 7 days ago
+			from = ftemp.Format(BASICDATE)
 		}
 
 		if refresh == "true" {
