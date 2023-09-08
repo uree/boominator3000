@@ -17,34 +17,17 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 )
 
-// NOTES
-
-// perhaps useful for catching the event which prompts bandcamp to sent analytics data phase = complete
-// https://bandcamp.com/stat_record?kind=track+play&track_id=2154565882&track_license_id=&from=embedded+album+player&from_url=http%3A%2F%2Flocalhost%3A8090%2F&stream_duration=214.748962&phase=complete&reference_num=743361424&rand=36982917390818215
-// https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/Intercept_HTTP_requests
-
-//events
-//https://bluerivermountains.com/en/log-all-javascript-events
-//monitorEvents(window,event); (in chrome .. no events though)
-// no related events
-// but the answer must be in the embedded-player.js file
-// this could be useful https://github.com/lovethebomb/bandcamp-feed-playlist
-//This is a lazy Chrome Extension that adds a mini player on the Bandcamp feed page. It allows you to quickly Play/Pause, go to next and previous track, and support autoplay of the tracks shared on your feed.
-
-// embedded_player ln 1563 Stats && Stats.PhasedStat
-// window[0].Player.PlayStat
-
-// supposedly unofficial apis exist
-// https://bandcamp.com/api/discover/3/get_web?g=all&gn=0&p=0&s=top&f=all&w=0&callback=jQuery35107982526342886465_1634893255270&_=1634893255271
-// how to get data (like file for streaming)
-// https://nevolin.be/bandcamp/main.js?_=1634893255269
-// https://bandcamp.com/api/hub/2/dig_deeper
-//https://github.com/michaelherger/Bandcamp-API not very useful
+// CONTENTS
+	// DATA STRUCTURES
+	// HELPER FUNCTIONS
+	// DATA STRUCTURES AND CONSTANTS
+	// HELPER FUNCTIONS
+	// DATABASE INTERACTION
+	// MAIN
+	// CORE FUNCTIONS (FETCH AND PARSE)
 
 
-
-// DATA STRUCTURES
-
+// DATA STRUCTURES AND CONSTANTS
 type URLSet struct {
 	XMLName xml.Name `xml:urlset`
     URLSet	[]SitemapURL `xml:"url"`
@@ -72,16 +55,26 @@ type SitemapSitemap struct {
 type ResponseData struct {
     Start string
     End   string
-    Tolpe     []ChanResult
+    Tolpe     []Tolpa
 }
 
-type ChanResult struct {
+type Tolpa struct {
     Location	string
     LastModifiedDate	time.Time
 }
 
-// HELPER FUNCTIONS
+const
+(
+  RFC3339 = "2006-01-02T15:04Z"
+	BASICDATE	= "2006-01-02"
+)
 
+const dbname = "boominator.db"
+const dbpath = "./db/"
+const mainTablename = "tolpe"
+
+
+// HELPER FUNCTIONS
 func between(start, end, check time.Time) bool {
     return check.After(start) && check.Before(end)
 }
@@ -135,35 +128,25 @@ func getSize(url string) {
 	//return contentlength
 }
 
-const
-(
-    RFC3339     = "2006-01-02T15:04Z"
-	BASICDATE	= "2006-01-02"
-)
-
 
 // DATABASE INTERACTION
-const dbname = "boominator.db"
-
-func doesDBexist() bool {
-	if _, err := os.Stat("./db/boominator.db"); err == nil {
-	 fmt.Printf("File exists.\n")
+func doesDBexist(dbname string) bool {
+	dbfull := dbpath+dbname
+	if _, err := os.Stat(dbfull); err == nil {
+	 fmt.Printf("DB exists.\n")
 	 return true
 	} else {
-		fmt.Printf("File does not exist.\n")
+		fmt.Printf("DB does not exist.\n")
 		return false
 	}
 }
 
 func createDB(dbname string) (int, error) {
-	os.Create("./db/"+dbname)
-	db, err := sql.Open("sqlite3", "./db/"+dbname)
+	dbfull := dbpath+dbname
+	os.Create(dbfull)
+	db, err := sql.Open("sqlite3", dbfull)
 
-	const createTable string = `
-  CREATE TABLE IF NOT EXISTS tolpe (
-  id string NOT NULL PRIMARY KEY,
-  lastmod DATETIME NOT NULL
-  );`
+	const createTable string = "CREATE TABLE IF NOT EXISTS " + mainTablename + " (id string NOT NULL PRIMARY KEY, lastmod DATETIME NOT NULL);"
 
 	if err != nil {
 	 return 0, err
@@ -176,7 +159,7 @@ func createDB(dbname string) (int, error) {
 	return 1, nil
 }
 
-func insertRecords(tolpe []ChanResult) bool {
+func insertRecords(tolpe []Tolpa) bool {
 	fmt.Println("inserting records")
 	// open db
 	db, err := sql.Open("sqlite3", "./db/boominator.db")
@@ -211,16 +194,17 @@ func insertRecords(tolpe []ChanResult) bool {
 	return true
 }
 
-func getRecords(fromdate time.Time, todate time.Time) ([]ChanResult, error) {
+func getRecords(fromdate time.Time, todate time.Time) ([]Tolpa, error) {
 
-	db, err := sql.Open("sqlite3", "./db/boominator.db")
+	dbfull := dbpath+dbname
+
+	db, err := sql.Open("sqlite3", dbfull)
 	if err != nil {
 	 fmt.Println(err)
 	 return nil, err
 	}
 
-	var results []ChanResult
-	// lastmod  >= '2023-08-25' and lastmod <= '2023-09-07' ORDER BY lastmod DESC
+	var results []Tolpa
 	rows, err := db.Query("SELECT * FROM tolpe WHERE lastmod >= ? and lastmod <= ? ORDER BY lastmod DESC", fromdate, todate)
 
 	if err != nil {
@@ -231,7 +215,7 @@ func getRecords(fromdate time.Time, todate time.Time) ([]ChanResult, error) {
 	defer rows.Close()
 
 	for rows.Next() {
-		var res ChanResult
+		var res Tolpa
 		if err := rows.Scan(&res.Location, &res.LastModifiedDate); err != nil {
         return results, err
     }
@@ -241,9 +225,10 @@ func getRecords(fromdate time.Time, todate time.Time) ([]ChanResult, error) {
 	return results, nil
 }
 
+
 // MAIN
 func main() {
-	if doesDBexist() ==false {
+	if doesDBexist(dbname) ==false {
 		createDB(dbname)
 	}
 
@@ -270,7 +255,7 @@ func main() {
 			fmt.Println("<UPDATE OFF>")
 		}
 
-		var bclinks []ChanResult
+		var bclinks []Tolpa
 
 		if update {
 			from_format := from + "T00:00Z"
@@ -298,12 +283,11 @@ func main() {
 }
 
 // CORE FUNCTIONS
-
-func fetchXML(from string, to string, update bool)([]ChanResult) {
+func fetchXML(from string, to string, update bool)([]Tolpa) {
 	start := time.Now()
 
 	// var tolpe[] string
-	var tolpe []ChanResult
+	var tolpe []Tolpa
 
 	sitemaps := []string {"http://radiostudent.si/sitemap.xml?page=1","http://radiostudent.si/sitemap.xml?page=2"}
 
@@ -324,8 +308,8 @@ func fetchXML(from string, to string, update bool)([]ChanResult) {
 	fmt.Printf("\n")
 
 
-	c := make(chan ChanResult)
-	c2 := make(chan ChanResult)
+	c := make(chan Tolpa)
+	c2 := make(chan Tolpa)
 
 	from_date, _ := time.Parse(RFC3339, from)
 	to_date := start
@@ -368,7 +352,7 @@ func fetchSitemaps(sitemaps []string, c chan string) {
 	close(c)
 }
 
-func fetchBC(urlset URLSet, from_date time.Time, to_date time.Time, c chan ChanResult) {
+func fetchBC(urlset URLSet, from_date time.Time, to_date time.Time, c chan Tolpa) {
 
 	// fetch from db
 
@@ -406,7 +390,7 @@ func fetchBC(urlset URLSet, from_date time.Time, to_date time.Time, c chan ChanR
 					//fmt.Printf("iframe:\n %v", sauce)
 					if strings.Contains(sauce, "//bandcamp") {
 						sauce = strings.Replace(sauce, "/tracklist=false", "tracklist=true", -1)
-						res := new(ChanResult)
+						res := new(Tolpa)
 						res.Location = sauce
 						res.LastModifiedDate = mod
 						c <- *res
