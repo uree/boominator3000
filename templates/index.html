@@ -9,6 +9,9 @@
 			  src="https://code.jquery.com/jquery-3.6.0.slim.min.js"
 			  integrity="sha256-u7e5khyithlIdTpu22PHhENmPcRdFiHRjhAuHcs05RI="
 			  crossorigin="anonymous"></script>
+        <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" integrity="sha512-w2id0Xt9P3rXGn68QxWUCWos3l0y0+8a16pq7UcK4N4gZzAYes7fjo4eN47joDdz1K+P/AXSlBF/GKOhVMtd7Q==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <script src="https://unpkg.com/htmx.org@1.7.0/dist/htmx.js"></script>
 
     </head>
     <body>
@@ -25,7 +28,51 @@
                 <div class="players">
 
                     {{range .Tolpe}}
-                        <iframe seamless="" src="{{.Location}}" style="border: 0; min-width: 36vw; min-height: 350px; display: block;"></iframe>
+                    <div class="grid-container">
+                        <iframe
+                            class="grid-item"
+                            seamless=""
+                            src="{{.Location}}"
+                            style="border: 0; min-width: 36vw; min-height: 350px; display: block;"></iframe>
+                        <div class="grid-item fav">
+                            {{if .Favourite}}
+                                <svg
+                                    class="fav full"
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    width="24"
+                                    height="24"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    stroke-width="2"
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    class="feather feather-star"
+                                    hx-put="/fav?op=0&id={{.Location}}"
+                                    hx-swap="outerHTML"
+                                    >
+                                        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                                </svg>
+                            {{else}}
+                                <svg
+                                    class="fav empty"
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    width="24" height="24"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    stroke-width="2"
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    class="feather feather-star"
+                                    hx-put="/fav?op=1&id={{.Location}}"
+                                    hx-swap="outerHTML"
+                                    >
+                                        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                                </svg>
+                            {{end}}
+                        </div>
+                    </div>
                     {{end}}
 
                 </div>

@@ -45,3 +45,31 @@
     margin: auto;
     padding-bottom: 20px;
 }
+
+.players .grid-container {
+    display: grid;
+    grid-template-columns: 8fr 1fr; /* 8:1 ratio */
+    grid-gap: 10px; /* adjust as needed */
+}
+
+svg.fav {
+    height: 2rem;
+    width: 2rem;
+    cursor: pointer;
+}
+
+svg.fav.full {
+    fill: black;
+}
+
+svg.fav.empty {
+    fill: white;
+}
+
+svg.fav.full:hover {
+    fill: white;
+}
+
+svg.fav.empty:hover {
+    fill: black;
+}

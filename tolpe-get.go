@@ -58,9 +58,15 @@ type ResponseData struct {
     Tolpe     []Tolpa
 }
 
+type FavResponse struct {
+    Location string
+    Favourite bool
+}
+
 type Tolpa struct {
     Location	string
     LastModifiedDate	time.Time
+    Favourite   bool
 }
 
 const
@@ -146,7 +152,7 @@ func createDB(dbname string) (int, error) {
 	os.Create(dbfull)
 	db, err := sql.Open("sqlite3", dbfull)
 
-	const createTable string = "CREATE TABLE IF NOT EXISTS " + mainTablename + " (id string NOT NULL PRIMARY KEY, lastmod DATETIME NOT NULL);"
+	const createTable string = "CREATE TABLE IF NOT EXISTS " + mainTablename + " (id string NOT NULL PRIMARY KEY, lastmod DATETIME NOT NULL, favourite BOOLEAN);"
 
 	if err != nil {
 	 return 0, err
@@ -216,7 +222,7 @@ func getRecords(fromdate time.Time, todate time.Time) ([]Tolpa, error) {
 
 	for rows.Next() {
 		var res Tolpa
-		if err := rows.Scan(&res.Location, &res.LastModifiedDate); err != nil {
+		if err := rows.Scan(&res.Location, &res.LastModifiedDate, &res.Favourite); err != nil {
         return results, err
     }
 		results = append(results, res)
@@ -225,6 +231,64 @@ func getRecords(fromdate time.Time, todate time.Time) ([]Tolpa, error) {
 	return results, nil
 }
 
+func manFav(id string, operation bool) bool {
+    // operation 1 = add 0 = rm
+    dbfull := dbpath+dbname
+
+    db, err := sql.Open("sqlite3", dbfull)
+    if err != nil {
+     fmt.Println(err)
+     return false
+    }
+
+    // Prepare the SQL statement
+    stmt, err := db.Prepare("UPDATE tolpe SET favourite = ? WHERE id = ?")
+    if err != nil {
+        fmt.Println("Error preparing statement:", err)
+        return false
+    }
+    defer stmt.Close()
+
+    // Execute the SQL statement
+    _, err = stmt.Exec(operation, id)
+    if err != nil {
+        fmt.Println("Error updating record:", err)
+        return false
+    }
+
+    fmt.Println("Record updated successfully")
+    return true
+}
+
+func lsFavs() ([]Tolpa, error) {
+    dbfull := dbpath+dbname
+
+    db, err := sql.Open("sqlite3", dbfull)
+    if err != nil {
+     fmt.Println(err)
+     return nil, err
+    }
+
+    var results []Tolpa
+    rows, err := db.Query("SELECT * FROM tolpe WHERE favourite=1;")
+    fmt.Println(rows)
+
+
+    defer rows.Close()
+
+    for rows.Next() {
+            fmt.Println("Nexzt")
+
+            var res Tolpa
+            if err := rows.Scan(&res.Location, &res.LastModifiedDate, &res.Favourite); err != nil {
+            fmt.Println(res)
+            return results, err
+        }
+        results = append(results, res)
+    }
+    fmt.Println(results)
+    return results, nil
+}
 
 // MAIN
 func main() {
@@ -284,6 +348,69 @@ func main() {
 		}
 		tmpl.Execute(w, response)
 	})
+
+    http.HandleFunc("/fav", func(w http.ResponseWriter, r *http.Request) {
+        if r.Method != http.MethodPut && r.Method != http.MethodGet {
+            w.WriteHeader(http.StatusMethodNotAllowed)
+            fmt.Fprintf(w, "Method not allowed")
+            return
+        }
+
+        if r.Method == http.MethodPut {
+            tmpl := template.Must(template.ParseFiles("./templates/fav-btn.html"))
+
+            id := r.URL.Query().Get("id")
+            if id == "" {
+                w.WriteHeader(http.StatusBadRequest)
+                fmt.Fprintf(w, "ID parameter is required")
+                return
+            }
+
+            op := r.URL.Query().Get("op")
+            if op == "" {
+                w.WriteHeader(http.StatusBadRequest)
+                fmt.Fprintf(w, "op parameter is required")
+                return
+            }
+
+            var opBool bool
+            if op == "1" {
+                opBool = true
+                response := FavResponse{
+                    Location: id,
+                    Favourite: true,
+                }
+
+                manFav(id, opBool)
+                tmpl.Execute(w, response)
+            } else {
+                opBool = false
+                response := FavResponse{
+                    Location: id,
+                    Favourite: false,
+                }
+
+                manFav(id, opBool)
+                tmpl.Execute(w, response)
+            }
+
+            fmt.Printf(op)
+            fmt.Printf(id)
+        }
+
+        if r.Method == http.MethodGet {
+            var favs []Tolpa
+            favs, _ = lsFavs()
+
+            response := ResponseData{
+                Start: "nil",
+                End: "nil",
+                Tolpe: favs,
+            }
+            tmpl.Execute(w, response)
+        }
+
+    })
 	http.ListenAndServe(":8090", nil)
 
 }
