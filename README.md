@@ -41,5 +41,8 @@ Build
 - download favourites via soulseek
 
 ## TO DO
+- get around the fact that RŠ does not seem to publish their sitemap anymore, now that the website is updated
+    - scrape 188 pages for links initially & then just do the last couple (based on db entries) & also keep an update all function
+        - lastmod needs to come from the publication date
 - test on wins
 - better install instructions (how to add to dash on linux)

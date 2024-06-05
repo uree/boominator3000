@@ -175,15 +175,17 @@ func insertRecords(tolpe []Tolpa) bool {
 	}
 
 	prepStr := "REPLACE INTO tolpe (id, lastmod) values"
+    // probably won't work if record doesn't exist yet?
 	vals := []interface{}{}
 
 	for _, row := range tolpe {
-    prepStr += "(?, ?),"
-		fmt.Println(row)
+      prepStr += "(?, ?),"
+	    fmt.Println(row)
 
-    vals = append(vals, row.Location, row.LastModifiedDate)
+      vals = append(vals, row.Location, row.LastModifiedDate)
 	}
 	fmt.Println(prepStr)
+    fmt.Println(vals)
 	//trim the last ,
 	prepStr = prepStr[0:len(prepStr)-1]
 	//prepare the statement
@@ -277,8 +279,7 @@ func lsFavs() ([]Tolpa, error) {
     defer rows.Close()
 
     for rows.Next() {
-            fmt.Println("Nexzt")
-
+            // fmt.Println("Nexzt")
             var res Tolpa
             if err := rows.Scan(&res.Location, &res.LastModifiedDate, &res.Favourite); err != nil {
             fmt.Println(res)
@@ -459,19 +460,18 @@ func fetchXML(from string, to string, update bool)([]Tolpa) {
 	go fetchBC(sitemap2, from_date, to_date, c2)
 
 	for bc := range c {
-		//fmt.Println("BANDCAMP1: ", bc)
+		// fmt.Println("BANDCAMP1: ", bc)
 		tolpe = append(tolpe, bc)
 	}
 
 	for bc := range c2 {
-		//fmt.Println("BANDCAMP2: ", bc)
+		// fmt.Println("BANDCAMP2: ", bc)
 		tolpe = append(tolpe, bc)
 	}
 
 	elapsed := time.Since(start)
 	fmt.Println("Took [%s]", elapsed)
-
-	fmt.Println("[ALL]", tolpe)
+	// fmt.Println("[ALL]", tolpe)
 
 	return tolpe
 }
@@ -492,11 +492,12 @@ func fetchBC(urlset URLSet, from_date time.Time, to_date time.Time, c chan Tolpa
 	for i := 0; i < len(urlset.URLSet); i++ {
 		loc := strings.ToLower(urlset.URLSet[i].Location)
 		mod, _ := time.Parse(RFC3339, urlset.URLSet[i].LastModifiedDate)
+        fmt.Println(mod.String())
 
 		if strings.Contains(loc, "/glasba/tolpa-bumov/"){
 			if between(from_date, to_date, mod) {
-				//fmt.Println("Location: " + loc)
-				//fmt.Println("Modified: " + mod.String())
+				// fmt.Println("Location: " + loc)
+				// fmt.Println("Modified: " + mod.String())
 				resp, err := http.Get(loc)
 
 				if err != nil {
@@ -506,7 +507,7 @@ func fetchBC(urlset URLSet, from_date time.Time, to_date time.Time, c chan Tolpa
 
 				defer resp.Body.Close()
 
-				//fmt.Println("Response status:", resp.Status)
+				// fmt.Println("Response status:", resp.Status)
 
 				doc, err := goquery.NewDocumentFromReader(resp.Body)
 
@@ -514,13 +515,13 @@ func fetchBC(urlset URLSet, from_date time.Time, to_date time.Time, c chan Tolpa
 					fmt.Printf("error: %v", err)
 				}
 
-				//ignore yt iframes yo!
+				// ignore yt iframes yo!
 
 				// i have to return mod as well if i want time ranking
 
 				doc.Find("iframe").Each(func(i int, s *goquery.Selection) {
 					sauce, _ := s.Attr("src")
-					//fmt.Printf("iframe:\n %v", sauce)
+					fmt.Printf("iframe:\n %v", sauce)
 					if strings.Contains(sauce, "//bandcamp") {
 						sauce = strings.Replace(sauce, "/tracklist=false", "tracklist=true", -1)
 						res := new(Tolpa)

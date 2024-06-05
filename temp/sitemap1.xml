@@ -3,10 +3,10 @@
   <head>
     <meta charset="utf-8" />
 <script>var _paq = _paq || [];(function(){var u=(("https:" == document.location.protocol) ? "https://anal.radiostudent.si/" : "http://anal.radiostudent.si/");_paq.push(["setSiteId", "1"]);_paq.push(["setTrackerUrl", u+"matomo.php"]);_paq.push(["setDocumentTitle", "404/URL = " + encodeURIComponent(document.location.pathname+document.location.search) + "/From = " + encodeURIComponent(document.referrer)]);_paq.push(["setDoNotTrack", 1]);if (!window.matomo_search_results_active) {_paq.push(["trackPageView"]);}_paq.push(["setIgnoreClasses", ["no-tracking","colorbox"]]);_paq.push(["enableLinkTracking"]);var d=document,g=d.createElement("script"),s=d.getElementsByTagName("script")[0];g.type="text/javascript";g.defer=true;g.async=true;g.src=u+"matomo.js";s.parentNode.insertBefore(g,s);})();</script>
-<link rel="shortlink" href="http://radiostudent.si/" />
-<link rel="canonical" href="http://radiostudent.si/" />
+<link rel="shortlink" href="https://radiostudent.si/" />
+<link rel="canonical" href="https://radiostudent.si/" />
 <meta property="og:site_name" content="Radio Študent" />
-<meta property="og:url" content="http://radiostudent.si/sitemap.xml" />
+<meta property="og:url" content="https://radiostudent.si/sitemap.xml" />
 <meta name="twitter:card" content="summary" />
 <meta name="twitter:site" content="@radiostudent" />
 <meta name="twitter:title" content="Stran ni bila najdena" />
@@ -20,7 +20,7 @@
     <meta name="theme-color" content="#ffd200" />
     <title>Stran ni bila najdena | Radio Študent</title>
     <link rel="stylesheet" media="all" href="/sites/default/assets/css/css_CyKzd5rTvsZnzm5Wavo7RLgwm0918H_PLsYNyG15rfg.css?delta=0&amp;language=sl&amp;theme=ereshnv&amp;include=eJxljlkOwjAMRC8UaiEOVGVxQ8jiynYKvT2hIITEzyxvfqZapUpQDzMsc7aKkTjdEBiFOnuUF98S3uUHyS6KFZwVNDjwtW0QCzlbTqJ7SS3-Yc9pVTH40DFnCNxXW6ZPNT5jSEo8W--JQ6IG3zQtTE2xBUNu6eLHR2DS88W8bx06VQq94BM1Q1Jx" />
-<link rel="stylesheet" media="all" href="/sites/default/assets/css/css_pDi7hKhWFssBrFkaOYESygmRKHO-jdW3yyVjhI7OCHE.css?delta=1&amp;language=sl&amp;theme=ereshnv&amp;include=eJxljlkOwjAMRC8UaiEOVGVxQ8jiynYKvT2hIITEzyxvfqZapUpQDzMsc7aKkTjdEBiFOnuUF98S3uUHyS6KFZwVNDjwtW0QCzlbTqJ7SS3-Yc9pVTH40DFnCNxXW6ZPNT5jSEo8W--JQ6IG3zQtTE2xBUNu6eLHR2DS88W8bx06VQq94BM1Q1Jx" />
+<link rel="stylesheet" media="all" href="/sites/default/assets/css/css_8yqdYTSmnd_iw0Ryyn0jTpcmrD5B0MPsJTCS8oJjj4o.css?delta=1&amp;language=sl&amp;theme=ereshnv&amp;include=eJxljlkOwjAMRC8UaiEOVGVxQ8jiynYKvT2hIITEzyxvfqZapUpQDzMsc7aKkTjdEBiFOnuUF98S3uUHyS6KFZwVNDjwtW0QCzlbTqJ7SS3-Yc9pVTH40DFnCNxXW6ZPNT5jSEo8W--JQ6IG3zQtTE2xBUNu6eLHR2DS88W8bx06VQq94BM1Q1Jx" />
 
     
   </head>
@@ -212,12 +212,27 @@
 <div class="views-element-container" id="block-ereshnv-views-block-uredniski-bannerji-block-1">
   
     
-    <div class="view view-uredniski-bannerji view-id-uredniski_bannerji view-display-id-block_1 js-view-dom-id-2bd5bc6e8ed3af5ea4f432bfa7054080d9966b816759dbcca48dfe80852139a0">
+    <div class="view view-uredniski-bannerji view-id-uredniski_bannerji view-display-id-block_1 js-view-dom-id-aa2342f23737d6bb599e52cb76fd812a239408d2884f63ff7d6346978744e9b1">
   
   
   
         
-      <div class="views-row">  <a href="https://radiostudent.si/druzba/rs-pokvirje" target="_blank"><div>
+      <div class="views-row">  <a href="https://radiostudent.si/kultura/hertz-arhitektur/zadnje-korekture" target="_blank"><div>
+  
+              <div class="field field--name-field-media-image field--type-image field--label-hidden field__item">  
+
+
+<img src="/sites/default/files/2024-05/test.gif" width="300" height="250" alt="" loading="lazy" class="image" />
+
+
+</div>
+      <div class="field field--name-field-avtorstvo-slike field--type-string field--label-hidden">
+  <div>Vir: Ekipa Hertz arhitektur</div>
+</div>
+
+</div>
+</a></div>
+<div class="views-row">  <a href="https://radiostudent.si/druzba/rs-pokvirje" target="_blank"><div>
   
               <div class="field field--name-field-media-image field--type-image field--label-hidden field__item">  
 
@@ -227,21 +242,6 @@
 
 </div>
       
-</div>
-</a></div>
-<div class="views-row">  <a href="https://radiostudent.si/kultura/hertz-arhitektur/zadnje-korekture" target="_blank"><div>
-  
-              <div class="field field--name-field-media-image field--type-image field--label-hidden field__item">  
-
-
-<img src="/sites/default/files/2024-05/test_1.gif" width="300" height="250" alt="" loading="lazy" class="image" />
-
-
-</div>
-      <div class="field field--name-field-avtorstvo-slike field--type-string field--label-hidden">
-  <div>Vir: ekipa Hertz arhitektur</div>
-</div>
-
 </div>
 </a></div>
 <div class="views-row">  <a href="http://radiostudent.si/politika/%C4%8Dasovnica-palestina" target="_blank"><div>
@@ -297,7 +297,7 @@
         <a href="/user/login" data-drupal-link-system-path="user/login">Prijava</a>
               </li>
           <li>
-        <a href="/sites/default/files/2023-10/Izjava%2520o%2520varstvu%2520osebnih%2520podatkov%2520-%2520Privacy%2520Policy.pdf">Izjava o varstvu podatkov</a>
+        <a href="/sites/default/files/2023-10/Izjava%20o%20varstvu%20osebnih%20podatkov%20-%20Privacy%20Policy.pdf">Izjava o varstvu podatkov</a>
               </li>
         </ul>
   
@@ -404,8 +404,8 @@
 
     
     <script type="application/json" data-drupal-selector="drupal-settings-json">{"path":{"baseUrl":"\/","pathPrefix":"","currentPath":"sitemap.xml","currentPathIsAdmin":false,"isFront":false,"currentLanguage":"sl","currentQuery":{"page":"2"}},"pluralDelimiter":"\u0003","suppressDeprecationErrors":true,"matomo":{"disableCookies":false,"trackMailto":true,"trackColorbox":true},"data":{"extlink":{"extTarget":true,"extTargetNoOverride":true,"extNofollow":false,"extNoreferrer":true,"extFollowNoOverride":false,"extClass":"0","extLabel":"(link is external)","extImgClass":false,"extSubdomains":true,"extExclude":"","extInclude":"","extCssExclude":"","extCssExplicit":"","extAlert":false,"extAlertText":"This link will take you to an external web site. We are not responsible for their content.","mailtoClass":"mailto","mailtoLabel":"(link sends email)","extUseFontAwesome":false,"extIconPlacement":"append","extFaLinkClasses":"fa fa-external-link","extFaMailtoClasses":"fa fa-envelope-o","whitelistedDomains":[]}},"ckeditorAccordion":{"accordionStyle":{"collapseAll":null,"keepRowsOpen":null,"animateAccordionOpenAndClose":1,"openTabsWithHash":1}},"user":{"uid":0,"permissionsHash":"3bd856089ec7f1ce6ff1fdd2a1672d0bc79c5d37ec4d687ee88c66ccc1abfcba"}}</script>
-<script src="/sites/default/assets/js/js_htB8zpqZm2OHP9iupG1NRpry9q-vyltTiCjkkhFhhLk.js?scope=footer&amp;delta=0&amp;language=sl&amp;theme=ereshnv&amp;include=eJxljlkOwjAMRC8UaiEOVGVxQ8jiynYKvT2hIITEzyxvfqZapUpQDzMsc7aKkTjdEBiFOnuUF98S3uUHyS6KFZwVNDjwtW0QCzlbTqJ7SS3-Yc9pVTH40DFnCNxXW6ZPNT5jSEo8W--JQ6IG3zQtTE2xBUNu6eLHR2DS88W8bx06VQq94BM1Q1Jx"></script>
-<script src="/modules/contrib/ckeditor_accordion/js/accordion.frontend.min.js?secqyd"></script>
+<script src="/sites/default/assets/js/js_7k6hFgFiJj9xNE5aCv1I2aFvPRr523TJKDLsKgZj7IQ.js?scope=footer&amp;delta=0&amp;language=sl&amp;theme=ereshnv&amp;include=eJxljlkOwjAMRC8UaiEOVGVxQ8jiynYKvT2hIITEzyxvfqZapUpQDzMsc7aKkTjdEBiFOnuUF98S3uUHyS6KFZwVNDjwtW0QCzlbTqJ7SS3-Yc9pVTH40DFnCNxXW6ZPNT5jSEo8W--JQ6IG3zQtTE2xBUNu6eLHR2DS88W8bx06VQq94BM1Q1Jx"></script>
+<script src="/modules/contrib/ckeditor_accordion/js/accordion.frontend.min.js?selu1k"></script>
 <script src="/sites/default/assets/js/js_YOIj5BS8ypwQanpd3YaAG3VB5UANco80hXhADtXuEdM.js?scope=footer&amp;delta=2&amp;language=sl&amp;theme=ereshnv&amp;include=eJxljlkOwjAMRC8UaiEOVGVxQ8jiynYKvT2hIITEzyxvfqZapUpQDzMsc7aKkTjdEBiFOnuUF98S3uUHyS6KFZwVNDjwtW0QCzlbTqJ7SS3-Yc9pVTH40DFnCNxXW6ZPNT5jSEo8W--JQ6IG3zQtTE2xBUNu6eLHR2DS88W8bx06VQq94BM1Q1Jx"></script>
 
   </body>
