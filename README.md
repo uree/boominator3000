@@ -5,11 +5,21 @@ Fetches Bandcamp albums featured in Tolpa Bumov on Radio Študent and arranges t
 
 ## Run
 
-Download the repository and run for boom-fetch (linux) or boom-fetch.exe (wins). Go to localhost:8090/tolpe?from=2021-10-20.
+Download the repository and run for boom-fetch (linux) or boom-fetch.exe (wins).
 
-The from parameter is mandatory. The required date format is YYYY-MM-DD.
+Go to http://localhost:8090/tolpe?from=2021-10-20.
 
-Other query string parameters are to (YYYY-MM-DD) and update (default false). If update is sent to true, the list of albums is refreshed ie. fetched from radiostudent.si anew.
+The `from` parameter is mandatory. The required date format is `YYYY-MM-DD`.
+
+Other query string parameters are `to (YYYY-MM-DD)` and `update (default false)`. If update is set to true,
+
+http://localhost:8090/tolpe?from=2021-10-20&update=true
+
+the list of albums is refreshed ie. fetched from radiostudent.si anew.
+
+You can add an album to your favourites by clicking on the star. Inspect your favourites at
+
+http://localhost:8090/fav
 
 ## Development
 

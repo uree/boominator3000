@@ -403,8 +403,8 @@ func main() {
             favs, _ = lsFavs()
 
             response := ResponseData{
-                Start: "nil",
-                End: "nil",
+                Start: "",
+                End: "",
                 Tolpe: favs,
             }
             tmpl.Execute(w, response)

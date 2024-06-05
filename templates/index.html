@@ -23,7 +23,9 @@
 
             <div class="tolpe">
                 <div class="info">
+                    {{if .Start}}
                     <p>from {{.Start}} to {{.End}} [ {{len .Tolpe}} tolp]</p>
+                    {{end}}
                 </div>
                 <div class="players">
 
