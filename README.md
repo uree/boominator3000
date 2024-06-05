@@ -13,6 +13,8 @@ Other query string parameters are to (YYYY-MM-DD) and update (default false). If
 
 ## Development
 
+Run
+
 `go run .`
 or
 `./boom-fetch`
@@ -27,3 +29,7 @@ Build
 - some sort of loading feedback
 - export list of favourites
 - download favourites via soulseek
+
+## TO DO
+- test on wins
+- better install instructions (how to add to dash on linux)
