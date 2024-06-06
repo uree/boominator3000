@@ -29,30 +29,6 @@ import (
 
 
 // DATA STRUCTURES AND CONSTANTS
-type URLSet struct {
-	XMLName xml.Name `xml:urlset`
-    URLSet	[]SitemapURL `xml:"url"`
-}
-
-type SitemapURL struct {
-	XMLName	         xml.Name `xml:"url"`
-    Location         string `xml:"loc"`
-    LastModifiedDate string `xml:"lastmod"`
-    ChangeFrequency  string `xml:"changefreq"`
-}
-
-type SitemapSet struct {
-	XMLName xml.Name `xml:sitemapindex`
-    SSet	[]SitemapSitemap `xml:"sitemap"`
-}
-
-type SitemapSitemap struct {
-	XMLName	         xml.Name `xml:"sitemap"`
-    Location         string `xml:"loc"`
-    LastModifiedDate string `xml:"lastmod"`
-    ChangeFrequency  string `xml:"changefreq"`
-}
-
 type ResponseData struct {
     Start string
     End   string
@@ -87,61 +63,6 @@ const mainTablename = "tolpe"
 const rsBaseUrl = "https://radiostudent.si"
 const tolpeLand = "https://radiostudent.si/glasba/tolpa-bumov"
 const tolpeBasePage = "https://radiostudent.si/glasba/tolpa-bumov?page="
-
-
-// HELPER FUNCTIONS
-func between(start, end, check time.Time) bool {
-    return check.After(start) && check.Before(end)
-}
-
-func openFile(filepath string)(URLSet) {
-	xmlFile, err := os.Open(filepath)
-
-	if err != nil {
-		fmt.Println(err)
-	}
-
-	defer xmlFile.Close()
-
-	byteValue, _ := ioutil.ReadAll(xmlFile)
-
-	var urlset URLSet
-	xml.Unmarshal(byteValue, &urlset)
-	return urlset
-}
-
-func downloadFile(filepath string, url string) error {
-
-	// Get the data
-	resp, err := http.Get(url)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-
-	// Create the file
-	out, err := os.Create(filepath)
-	if err != nil {
-		return err
-	}
-	defer out.Close()
-
-	// Write the body to file
-	_, err = io.Copy(out, resp.Body)
-	return err
-}
-
-
-// head does not contain this
-func getSize(url string) {
-	res, err := http.Head(url)
-	if err != nil {
-		panic(err)
-	}
-	contentlength:=res.ContentLength
-	fmt.Printf("ContentLength:%v",contentlength)
-	//return contentlength
-}
 
 
 // DATABASE INTERACTION
@@ -208,7 +129,6 @@ func insertRecords(tolpe []Tolpa) bool {
 		fmt.Println(err)
 		return false
 	}
-
 
 	return true
 }
@@ -534,11 +454,9 @@ func parseOneTolpaSite(url string, c chan []Tolpa, wg *sync.WaitGroup) {
     defer wg.Done()
 
     var tolpe []Tolpa
-    // should get all the links needed and then coroutinely fetchBC
     resp, err := http.Get(url)
 
     if err != nil {
-      //c <- fmt.Sprint(err) // send to channel ch
       fmt.Printf("error: %v", err)
     }
 
@@ -562,7 +480,6 @@ func parseOneTolpaSite(url string, c chan []Tolpa, wg *sync.WaitGroup) {
         nudate := strings.TrimSpace(date.Text())
         fmtdate, _ := time.Parse(TOLPADATE, nudate)
 
-        // TO DO: get bc data too ...
         location := fetchBC(rsBaseUrl+href)
 
         // append to tolpe
@@ -570,10 +487,8 @@ func parseOneTolpaSite(url string, c chan []Tolpa, wg *sync.WaitGroup) {
             Location: location,
             LastModifiedDate: fmtdate,
         }
-        tolpe = append(tolpe, res) // continue here: tricky to append!
+        tolpe = append(tolpe, res)
     })
-
-    // fmt.Println("[ALL]", tolpe)
     c <- tolpe
 }
 
@@ -675,8 +590,6 @@ func fetchBC(url string) string {
 
 	defer resp.Body.Close()
 
-	// fmt.Println("Response status:", resp.Status)
-
 	doc, err := goquery.NewDocumentFromReader(resp.Body)
 
 	if err != nil {
@@ -685,7 +598,6 @@ func fetchBC(url string) string {
 	}
 
 	// ignore yt iframes yo!
-
 	doc.Find("iframe").Each(func(i int, s *goquery.Selection) {
 		sauce, _ := s.Attr("src")
 		if strings.Contains(sauce, "//bandcamp") {
