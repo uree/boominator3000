@@ -12,6 +12,7 @@ import (
 	"strconv"
 	"io"
 	"database/sql"
+    "sync"
 
 	"github.com/PuerkitoBio/goquery"
 	_ "github.com/mattn/go-sqlite3"
@@ -63,6 +64,10 @@ type FavResponse struct {
     Favourite bool
 }
 
+type PageResponse struct {
+    Lastpage interface{}
+}
+
 type Tolpa struct {
     Location	string
     LastModifiedDate	time.Time
@@ -72,12 +77,16 @@ type Tolpa struct {
 const
 (
   RFC3339 = "2006-01-02T15:04Z"
-	BASICDATE	= "2006-01-02"
+  BASICDATE	= "2006-01-02"
+  TOLPADATE = "2. 1. 2006 - 15.04"
 )
 
 const dbname = "boominator.db"
 const dbpath = "./db/"
 const mainTablename = "tolpe"
+const rsBaseUrl = "https://radiostudent.si"
+const tolpeLand = "https://radiostudent.si/glasba/tolpa-bumov"
+const tolpeBasePage = "https://radiostudent.si/glasba/tolpa-bumov?page="
 
 
 // HELPER FUNCTIONS
@@ -152,8 +161,10 @@ func createDB(dbname string) (int, error) {
 	os.Create(dbfull)
 	db, err := sql.Open("sqlite3", dbfull)
 
-	const createTable string = "CREATE TABLE IF NOT EXISTS " + mainTablename + " (id string NOT NULL PRIMARY KEY, lastmod DATETIME NOT NULL, favourite BOOLEAN);"
-
+	const createTable string = `
+        CREATE TABLE IF NOT EXISTS ` + mainTablename + ` (id string NOT NULL PRIMARY KEY, lastmod DATETIME NOT NULL, favourite BOOLEAN DEFAULT 0);
+        CREATE TABLE IF NOT EXISTS "constants" (id int NOT NULL PRIMARY KEY, name string NOT NULL UNIQUE, val int NOT NULL);
+    `
 	if err != nil {
 	 return 0, err
 	}
@@ -213,7 +224,7 @@ func getRecords(fromdate time.Time, todate time.Time) ([]Tolpa, error) {
 	}
 
 	var results []Tolpa
-	rows, err := db.Query("SELECT * FROM tolpe WHERE lastmod >= ? and lastmod <= ? ORDER BY lastmod DESC", fromdate, todate)
+	rows, err := db.Query("SELECT * FROM tolpe WHERE lastmod >= ? and lastmod <= ? ORDER BY lastmod DESC;", fromdate, todate)
 
 	if err != nil {
 	 fmt.Println(err)
@@ -225,11 +236,12 @@ func getRecords(fromdate time.Time, todate time.Time) ([]Tolpa, error) {
 	for rows.Next() {
 		var res Tolpa
 		if err := rows.Scan(&res.Location, &res.LastModifiedDate, &res.Favourite); err != nil {
+        fmt.Println(err)
         return results, err
     }
 		results = append(results, res)
 	}
-	fmt.Println(results)
+	fmt.Println("Results: %v", results)
 	return results, nil
 }
 
@@ -291,64 +303,66 @@ func lsFavs() ([]Tolpa, error) {
     return results, nil
 }
 
+func savedLastPage() (int, error) {
+    dbfull := dbpath+dbname
+
+    db, err := sql.Open("sqlite3", dbfull)
+    if err != nil {
+     fmt.Println(err)
+     return 0, err
+    }
+
+    var page int
+
+    if err := db.QueryRow("SELECT val FROM constants WHERE name ='lastpage';").Scan(&page); err != nil {
+        if err == sql.ErrNoRows {
+            fmt.Println("ERRNOROWS")
+            return 0, fmt.Errorf("SQL error")
+        }
+        fmt.Println("SQL err")
+        return 0, fmt.Errorf("SQL error %d:", err)
+    }
+    fmt.Println("success")
+    return page, nil
+}
+
+func submitLastPage(lastPage int) (bool) {
+    dbfull := dbpath+dbname
+
+    db, err := sql.Open("sqlite3", dbfull)
+    if err != nil {
+     fmt.Println(err)
+     return false
+    }
+
+    // Prepare the SQL statement
+    stmt, err := db.Prepare("INSERT OR REPLACE INTO constants (id, name, val) VALUES (?, ?, ?);")
+
+    if err != nil {
+        fmt.Println("Error preparing statement:", err)
+        return false
+    }
+    defer stmt.Close()
+
+    // Execute the SQL statement
+    _, err = stmt.Exec(0, "lastpage", lastPage)
+    if err != nil {
+        fmt.Println("Error updating record:", err)
+        return false
+    }
+
+    fmt.Println("Record updated successfully")
+    return true
+
+}
+
 // MAIN
 func main() {
 	if doesDBexist(dbname) ==false {
 		createDB(dbname)
 	}
 
-	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
-
 	tmpl := template.Must(template.ParseFiles("./templates/index.html"))
-	http.HandleFunc("/tolpe", func(w http.ResponseWriter, r *http.Request) {
-
-		query := r.URL.Query()
-		from := query.Get("from")
-		to := query.Get("to")
-		refresh := query.Get("update")
-
-		update := false
-
-		if to == "" {
-			ct := time.Now()
-			to = ct.Format(BASICDATE)
-		}
-		// TO DO: redirect so the url is synced
-		if from == "" {
-			tn := time.Now()
-			ftemp := tn.AddDate(0,0,-7) // 7 days ago
-			from = ftemp.Format(BASICDATE)
-		}
-
-		if refresh == "true" {
-			update = true
-		} else {
-			fmt.Println("<UPDATE OFF>")
-		}
-
-		var bclinks []Tolpa
-
-		if update {
-			from_format := from + "T00:00Z"
-			to_format := to + "T00:00Z"
-			fmt.Printf("[PARAMS] ", from_format, to_format)
-
-			bclinks = fetchXML(from_format, to_format, update)
-			fmt.Printf("[COUNT] ", len(bclinks))
-			insertRecords(bclinks)
-		} else {
-			from_date,_ := time.Parse(BASICDATE, from)
-			to_date,_ := time.Parse(BASICDATE, to)
-			bclinks, _ = getRecords(from_date, to_date)
-		}
-
-		response := ResponseData{
-			Start: from,
-			End: to,
-			Tolpe: bclinks,
-		}
-		tmpl.Execute(w, response)
-	})
 
     http.HandleFunc("/fav", func(w http.ResponseWriter, r *http.Request) {
         if r.Method != http.MethodPut && r.Method != http.MethodGet {
@@ -412,126 +426,272 @@ func main() {
         }
 
     })
+
+    http.HandleFunc("/full-update", func(w http.ResponseWriter, r *http.Request) {
+        if r.Method != http.MethodPut && r.Method != http.MethodGet {
+            w.WriteHeader(http.StatusMethodNotAllowed)
+            fmt.Fprintf(w, "Method not allowed")
+            return
+        }
+
+        tmpl := template.Must(template.ParseFiles("./templates/full-update.html"))
+
+        if r.Method == http.MethodPut{
+            lp, err := savedLastPage()
+
+            if err != nil {
+
+            }
+            fmt.Printf("Running a full update %v", lp)
+            fmt.Printf("lastpage %v", lp)
+
+            // Update
+            bclinks, lastPage := fetchSiteLnks()
+            lp = lastPage
+            fmt.Printf("[COUNT] ", len(bclinks))
+            insertRecords(bclinks)
+            // lastPage := 187
+            submitLastPage(lp)
+
+            response := PageResponse{
+                Lastpage: lp,
+            }
+            tmpl.Execute(w, response)
+        }
+
+        if r.Method == http.MethodGet {
+            lp, err := savedLastPage()
+            if err != nil {
+
+            }
+            fmt.Printf("lastpage %v", lp)
+            response := PageResponse{
+                Lastpage: lp,
+            }
+            tmpl.Execute(w, response)
+        }
+    })
+
+    http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
+
+	http.HandleFunc("/tolpe", func(w http.ResponseWriter, r *http.Request) {
+
+		query := r.URL.Query()
+		from := query.Get("from")
+		to := query.Get("to")
+		refresh := query.Get("update")
+
+		update := false
+
+		if to == "" {
+			ct := time.Now()
+			to = ct.Format(BASICDATE)
+		}
+		// TO DO: redirect so the url is synced
+		if from == "" {
+			tn := time.Now()
+			ftemp := tn.AddDate(0,0,-7) // 7 days ago
+			from = ftemp.Format(BASICDATE)
+		}
+
+		if refresh == "true" {
+			update = true
+		} else {
+			fmt.Println("<UPDATE OFF>")
+		}
+
+		var bclinks []Tolpa
+        var lastPage int
+
+		if update {
+            bclinks, lastPage = fetchSiteLnks()
+			fmt.Printf("[COUNT] ", len(bclinks))
+			insertRecords(bclinks)
+            submitLastPage(lastPage)
+		}
+
+		from_date,_ := time.Parse(BASICDATE, from)
+		to_date,_ := time.Parse(BASICDATE, to)
+		bclinks, _ = getRecords(from_date, to_date)
+        fmt.Println("Records %v", bclinks)
+
+		response := ResponseData{
+			Start: from,
+			End: to,
+			Tolpe: bclinks,
+		}
+		tmpl.Execute(w, response)
+	})
+
 	http.ListenAndServe(":8090", nil)
 
 }
 
 // CORE FUNCTIONS
-func fetchXML(from string, to string, update bool)([]Tolpa) {
-	start := time.Now()
 
-	// var tolpe[] string
-	var tolpe []Tolpa
+// extracts all dates ("lastmod") and urls from a single tolpa site
+func parseOneTolpaSite(url string, c chan []Tolpa, wg *sync.WaitGroup) {
+    defer wg.Done()
 
-	sitemaps := []string {"http://radiostudent.si/sitemap.xml?page=1","http://radiostudent.si/sitemap.xml?page=2"}
+    var tolpe []Tolpa
+    // should get all the links needed and then coroutinely fetchBC
+    resp, err := http.Get(url)
 
-	// check if sitemap has changed since last call && download
-	cfetch := make(chan string)
+    if err != nil {
+      //c <- fmt.Sprint(err) // send to channel ch
+      fmt.Printf("error: %v", err)
+    }
 
-	if update {
-		go fetchSitemaps(sitemaps, cfetch)
-	}
+    defer resp.Body.Close()
 
-	/// else just open the files directly (will this be slower? naah)
-	sitemap1 := openFile("./temp/sitemap1.xml")
-	sitemap2 := openFile("./temp/sitemap2.xml")
+    fmt.Println("Response status:", resp.Status)
 
+    doc, err := goquery.NewDocumentFromReader(resp.Body)
 
-	parsed := time.Since(start)
-	fmt.Printf("Parsed [%s]", parsed)
-	fmt.Printf("\n")
+    if err != nil {
+        fmt.Printf("error: %v", err)
+    }
 
+    // get last page number
+    doc.Find("div.node--type-prispevek").Each(func(i int, s *goquery.Selection) {
+        title := s.Find("div.field--name-title")
+        date := s.Find("div.field--name-field-v-etru")
+        href, _ := title.Find("a").Attr("href")
 
-	c := make(chan Tolpa)
-	c2 := make(chan Tolpa)
+        //parse date
+        nudate := strings.TrimSpace(date.Text())
+        fmtdate, _ := time.Parse(TOLPADATE, nudate)
 
-	from_date, _ := time.Parse(RFC3339, from)
-	to_date := start
+        // TO DO: get bc data too ...
+        location := fetchBC(rsBaseUrl+href)
 
-	if to != "" {
-		to_date, _ = time.Parse(RFC3339, to)
-	}
+        // append to tolpe
+        res := Tolpa {
+            Location: location,
+            LastModifiedDate: fmtdate,
+        }
+        tolpe = append(tolpe, res) // continue here: tricky to append!
+    })
 
-	fmt.Println("timeFilter: ", from_date, to_date)
-
-	fmt.Println("--- goroutine sitemap 1 start --- ")
-	go fetchBC(sitemap1, from_date, to_date, c)
-	fmt.Println("--- goroutine sitemap 2 start --- ")
-	go fetchBC(sitemap2, from_date, to_date, c2)
-
-	for bc := range c {
-		// fmt.Println("BANDCAMP1: ", bc)
-		tolpe = append(tolpe, bc)
-	}
-
-	for bc := range c2 {
-		// fmt.Println("BANDCAMP2: ", bc)
-		tolpe = append(tolpe, bc)
-	}
-
-	elapsed := time.Since(start)
-	fmt.Println("Took [%s]", elapsed)
-	// fmt.Println("[ALL]", tolpe)
-
-	return tolpe
+    // fmt.Println("[ALL]", tolpe)
+    c <- tolpe
 }
 
-func fetchSitemaps(sitemaps []string, c chan string) {
-	for i := 0; i < len(sitemaps); i++ {
-		filename := "./temp/sitemap"+strconv.Itoa(i)+".xml"
-		//url := sitemaps[i]
-		downloadFile(filename, sitemaps[i])
-	}
-	close(c)
+
+func getLastPage() int {
+    var lastPage int
+
+    resp, err := http.Get(tolpeLand)
+    if err != nil {
+      fmt.Printf("error: %v", err)
+    }
+
+    defer resp.Body.Close()
+    doc, err := goquery.NewDocumentFromReader(resp.Body)
+    if err != nil {
+        fmt.Printf("error: %v", err)
+    }
+
+    // get last page number
+    lastPageEl := doc.Find("li.pager__item--last").First()
+
+    href, exists := lastPageEl.Find("a").Attr("href")
+    if exists {
+        split := strings.Split(href, "=")
+        lastPage, _ = strconv.Atoi(split[len(split)-1])
+    }
+    return lastPage
 }
 
-func fetchBC(urlset URLSet, from_date time.Time, to_date time.Time, c chan Tolpa) {
+// fetches urls for each tolpa bumov on the site /glasba/tolpa-bumov
+// mainly fetches them from the first page but can be forced to update
+func fetchSiteLnks() ([]Tolpa, int) {
+    start := time.Now()
+    var tolpe []Tolpa
 
-	// fetch from db
+    lastPage := getLastPage()
 
-	for i := 0; i < len(urlset.URLSet); i++ {
-		loc := strings.ToLower(urlset.URLSet[i].Location)
-		mod, _ := time.Parse(RFC3339, urlset.URLSet[i].LastModifiedDate)
-        fmt.Println(mod.String())
+    fmt.Printf("Last page: %v", lastPage)
 
-		if strings.Contains(loc, "/glasba/tolpa-bumov/"){
-			if between(from_date, to_date, mod) {
-				// fmt.Println("Location: " + loc)
-				// fmt.Println("Modified: " + mod.String())
-				resp, err := http.Get(loc)
+    sLP, err := savedLastPage()
 
-				if err != nil {
-				  //c <- fmt.Sprint(err) // send to channel ch
-				  return
-				}
+    if err != nil {
+        return tolpe, 0
+    }
 
-				defer resp.Body.Close()
+    if lastPage >= sLP {
+        fmt.Printf("Need to reindex")
+        diff := lastPage-sLP
+        fmt.Printf("Diff: %v", diff)
 
-				// fmt.Println("Response status:", resp.Status)
+        // generate links
+        var allPages []string
 
-				doc, err := goquery.NewDocumentFromReader(resp.Body)
+        for i := 0; i <= diff; i++ {
+            page := fmt.Sprintf("%s%d", tolpeBasePage, i)
+            allPages = append(allPages, page)
+        }
+        fmt.Printf("%v", allPages)
 
-				if err != nil {
-					fmt.Printf("error: %v", err)
-				}
+        // here comes the coroutine
+        var wg sync.WaitGroup
+        ch := make(chan []Tolpa)
+        for i := 0; i < len(allPages); i++ {
+            wg.Add(1)
+            go parseOneTolpaSite(allPages[i], ch, &wg)
+        }
 
-				// ignore yt iframes yo!
+        go func() {
+            wg.Wait()
+            close(ch)
+        }()
 
-				// i have to return mod as well if i want time ranking
+        for tlp := range ch {
+            fmt.Println("ONE: ", tlp)
+            tolpe = append(tolpe, tlp...)
+        }
+    } else {
+        fmt.Printf("No need to reindex")
+    }
 
-				doc.Find("iframe").Each(func(i int, s *goquery.Selection) {
-					sauce, _ := s.Attr("src")
-					fmt.Printf("iframe:\n %v", sauce)
-					if strings.Contains(sauce, "//bandcamp") {
-						sauce = strings.Replace(sauce, "/tracklist=false", "tracklist=true", -1)
-						res := new(Tolpa)
-						res.Location = sauce
-						res.LastModifiedDate = mod
-						c <- *res
-					}
-				})
-			}
+    elapsed := time.Since(start)
+    fmt.Println("Took [%s]", elapsed)
+    fmt.Println("[ALL]", tolpe)
+
+    return tolpe, lastPage
+
+}
+
+func fetchBC(url string) string {
+
+    var bclink string
+
+	resp, err := http.Get(url)
+
+	if err != nil {
+      fmt.Printf("error: %v", err)
+	  return ""
+	}
+
+	defer resp.Body.Close()
+
+	// fmt.Println("Response status:", resp.Status)
+
+	doc, err := goquery.NewDocumentFromReader(resp.Body)
+
+	if err != nil {
+		fmt.Printf("error: %v", err)
+        return ""
+	}
+
+	// ignore yt iframes yo!
+
+	doc.Find("iframe").Each(func(i int, s *goquery.Selection) {
+		sauce, _ := s.Attr("src")
+		if strings.Contains(sauce, "//bandcamp") {
+			bclink = strings.Replace(sauce, "/tracklist=false", "tracklist=true", -1)
 		}
-	}
-	close(c)
+	})
+
+    return bclink
 }
