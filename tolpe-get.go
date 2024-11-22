@@ -5,12 +5,12 @@ import (
     "fmt"
     "net/http"
 	"html/template"
-    "encoding/xml"
-	"io/ioutil"
+    // "encoding/xml"
+	// "io/ioutil"
 	"time"
 	"os"
 	"strconv"
-	"io"
+	// "io"
 	"database/sql"
     "sync"
 
@@ -54,7 +54,8 @@ const
 (
   RFC3339 = "2006-01-02T15:04Z"
   BASICDATE	= "2006-01-02"
-  TOLPADATE = "2. 1. 2006 - 15.04"
+  TOLPADATE = "2. 1. 2006 – 15.04"
+
 )
 
 const dbname = "boominator.db"
@@ -161,7 +162,7 @@ func getRecords(fromdate time.Time, todate time.Time) ([]Tolpa, error) {
     }
 		results = append(results, res)
 	}
-	fmt.Println("Results: %v", results)
+    // fmt.Println("Results: %v", results)
 	return results, nil
 }
 
@@ -278,6 +279,7 @@ func submitLastPage(lastPage int) (bool) {
 
 // MAIN
 func main() {
+
 	if doesDBexist(dbname) ==false {
 		createDB(dbname)
 	}
@@ -357,20 +359,15 @@ func main() {
         tmpl := template.Must(template.ParseFiles("./templates/full-update.html"))
 
         if r.Method == http.MethodPut{
-            lp, err := savedLastPage()
-
-            if err != nil {
-
-            }
-            fmt.Printf("Running a full update %v", lp)
-            fmt.Printf("lastpage %v", lp)
+            lp := 0
+            fmt.Printf("Running a full update")
 
             // Update
             bclinks, lastPage := fetchSiteLnks()
             lp = lastPage
             fmt.Printf("[COUNT] ", len(bclinks))
             insertRecords(bclinks)
-            // lastPage := 187
+            // lastPage := 194
             submitLastPage(lp)
 
             response := PageResponse{
@@ -395,7 +392,6 @@ func main() {
     http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
 
 	http.HandleFunc("/tolpe", func(w http.ResponseWriter, r *http.Request) {
-
 		query := r.URL.Query()
 		from := query.Get("from")
 		to := query.Get("to")
@@ -414,8 +410,10 @@ func main() {
 			from = ftemp.Format(BASICDATE)
 		}
 
+
 		if refresh == "true" {
 			update = true
+            fmt.Println("<UPDATE ON>")
 		} else {
 			fmt.Println("<UPDATE OFF>")
 		}
@@ -425,15 +423,13 @@ func main() {
 
 		if update {
             bclinks, lastPage = fetchSiteLnks()
-			fmt.Printf("[COUNT] ", len(bclinks))
-			insertRecords(bclinks)
+            insertRecords(bclinks)
             submitLastPage(lastPage)
 		}
 
 		from_date,_ := time.Parse(BASICDATE, from)
 		to_date,_ := time.Parse(BASICDATE, to)
 		bclinks, _ = getRecords(from_date, to_date)
-        fmt.Println("Records %v", bclinks)
 
 		response := ResponseData{
 			Start: from,
@@ -475,6 +471,9 @@ func parseOneTolpaSite(url string, c chan []Tolpa, wg *sync.WaitGroup) {
         title := s.Find("div.field--name-title")
         date := s.Find("div.field--name-field-v-etru")
         href, _ := title.Find("a").Attr("href")
+
+        fmt.Println("Date: ", date)
+        fmt.Println("Date text: ", date.Text())
 
         //parse date
         nudate := strings.TrimSpace(date.Text())
