@@ -520,11 +520,11 @@ func fetchSiteLnks() ([]Tolpa, int) {
     start := time.Now()
     var tolpe []Tolpa
 
-    lastPage := getLastPage()
+    lastPage := getLastPage() // fetches current max page number from radiostudent.si
 
     fmt.Printf("Last page: %v", lastPage)
 
-    sLP, err := savedLastPage()
+    sLP, err := savedLastPage()  // from db
 
     if err != nil {
         return tolpe, 0

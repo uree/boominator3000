@@ -15,7 +15,7 @@ Other query string parameters are `to (YYYY-MM-DD)` and `update (default false)`
 
 `/tolpe?from=2021-10-20&update=true`
 
-the list of albums is refreshed ie. fetched from radiostudent.si anew. By default `update=true` fetches the albums which are newer than the ones already in the db.
+the list of albums is refreshed ie. fetched from radiostudent.si anew. By default `update=true` fetches the albums if the number of pages at https://radiostudent.si/glasba/topla-bumov has increased since last update.
 
 To fetch older albums, use `/full-update`.
 
@@ -51,6 +51,7 @@ Build
 - download favourites via soulseek
 
 ## TO DO
+- split code into api, scraping/parsing and db files/modules
 - test on wins
 - better install instructions (how to add to dash on linux)
 - improve `/full-update` logic so that it ignores the savedLastPage value and updates/overwrites all records
