@@ -472,9 +472,6 @@ func parseOneTolpaSite(url string, c chan []Tolpa, wg *sync.WaitGroup) {
         date := s.Find("div.field--name-field-v-etru")
         href, _ := title.Find("a").Attr("href")
 
-        fmt.Println("Date: ", date)
-        fmt.Println("Date text: ", date.Text())
-
         //parse date
         nudate := strings.TrimSpace(date.Text())
         fmtdate, _ := time.Parse(TOLPADATE, nudate)
