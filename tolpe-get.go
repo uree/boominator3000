@@ -358,13 +358,23 @@ func main() {
 
         tmpl := template.Must(template.ParseFiles("./templates/full-update.html"))
 
+        // rescrape and update records
+        // starting with the lastPage and continuing forward in time
+        // lastPage == 0 will update all records
         if r.Method == http.MethodPut{
             lp := 0
+            query := r.URL.Query()
+            lastPage := query.Get("lastPage")
+            if lastPage != "" {
+                lp = strconv.Atoi(split[len(split)-1])
+            }
+
             fmt.Printf("Running a full update")
 
             // Update
-            bclinks, lastPage := fetchSiteLnks()
-            lp = lastPage
+            // need to specify last page here ... 
+            // or reset the last page value in the db
+            bclinks, _ := fetchSiteLnks()
             fmt.Printf("[COUNT] ", len(bclinks))
             insertRecords(bclinks)
             // lastPage := 194
@@ -421,6 +431,7 @@ func main() {
 		var bclinks []Tolpa
         var lastPage int
 
+        // this should always update the last page
 		if update {
             bclinks, lastPage = fetchSiteLnks()
             insertRecords(bclinks)
@@ -515,7 +526,8 @@ func getLastPage() int {
 }
 
 // fetches urls for each tolpa bumov on the site /glasba/tolpa-bumov
-// mainly fetches them from the first page but can be forced to update
+// always scrapes the front page
+// also scrapes other pages if number of pages has increased since last update
 func fetchSiteLnks() ([]Tolpa, int) {
     start := time.Now()
     var tolpe []Tolpa
