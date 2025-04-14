@@ -107,7 +107,7 @@ func insertRecords(tolpe []Tolpa) bool {
 	 os.Exit(0)
 	}
 
-	prepStr := "REPLACE INTO tolpe (id, lastmod) values"
+    prepStr := "INSERT INTO tolpe (id, lastmod) values"
     // probably won't work if record doesn't exist yet?
 	vals := []interface{}{}
 
@@ -121,6 +121,7 @@ func insertRecords(tolpe []Tolpa) bool {
     fmt.Println(vals)
 	//trim the last ,
 	prepStr = prepStr[0:len(prepStr)-1]
+    prepStr += " ON CONFLICT(id) DO UPDATE SET lastmod=excluded.lastmod"
 	//prepare the statement
 	stmt, _ := db.Prepare(prepStr)
 	fmt.Println(stmt)
@@ -366,13 +367,13 @@ func main() {
             query := r.URL.Query()
             lastPage := query.Get("lastPage")
             if lastPage != "" {
-                lp = strconv.Atoi(split[len(split)-1])
+                lp, _ = strconv.Atoi(lastPage)
             }
 
             fmt.Printf("Running a full update")
 
             // Update
-            // need to specify last page here ... 
+            // need to specify last page here ...
             // or reset the last page value in the db
             bclinks, _ := fetchSiteLnks()
             fmt.Printf("[COUNT] ", len(bclinks))
